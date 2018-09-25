@@ -83,6 +83,10 @@
 using Inkscape::round;
 #endif
 
+#ifdef WITH_CARBON_INTEGRATION
+#include <osx_carbon_integration/osx-integration.h>
+#endif
+
 using Inkscape::UI::Widget::UnitTracker;
 using Inkscape::UI::UXManager;
 using Inkscape::UI::ToolboxFactory;
@@ -326,7 +330,7 @@ static void canvas_tbl_size_allocate(GtkWidget    * /*widget*/,
                                      GdkRectangle * /*allocation*/,
                                      gpointer      data)
 {
-    SPDesktopWidget *dtw = SP_DESKTOP_WIDGET(data); 
+    SPDesktopWidget *dtw = SP_DESKTOP_WIDGET(data);
     sp_desktop_widget_update_rulers(dtw);
 }
 
@@ -429,22 +433,22 @@ void SPDesktopWidget::init( SPDesktopWidget *dtw )
     gtk_widget_set_name(tbl_wrapper, "CanvasTableWrapper");
     dtw->canvas_tbl = gtk_grid_new();
     gtk_widget_set_name(dtw->canvas_tbl, "CanvasTable");
-    
+
     gtk_grid_attach(GTK_GRID(dtw->canvas_tbl), dtw->guides_lock, 0, 0, 1, 1);
     gtk_grid_attach(GTK_GRID(dtw->canvas_tbl), eventbox, 1, 0, 1, 1);
 #else
     GtkWidget *tbl_wrapper = gtk_table_new(2, 3, FALSE);
     dtw->canvas_tbl = gtk_table_new(3, 3, FALSE);
-   
+
     gtk_table_attach(GTK_TABLE(dtw->canvas_tbl),
                      dtw->guides_lock,
-                     0, 1,     0, 1, 
-		     GTK_FILL, GTK_FILL, 
+                     0, 1,     0, 1,
+		     GTK_FILL, GTK_FILL,
 		     0,        0);
     gtk_table_attach(GTK_TABLE(dtw->canvas_tbl),
                  eventbox,
-                 1, 2,     0, 1, 
-	     GTK_FILL, GTK_FILL, 
+                 1, 2,     0, 1,
+	     GTK_FILL, GTK_FILL,
 	     0,        0);
 #endif
     g_signal_connect (G_OBJECT (dtw->guides_lock), "toggled", G_CALLBACK (sp_update_guides_lock), dtw);
@@ -665,11 +669,11 @@ void SPDesktopWidget::init( SPDesktopWidget *dtw )
     gtk_box_pack_start (GTK_BOX (dtw->statusbar), GTK_WIDGET(ss_), FALSE, FALSE, 0);
 
     // Separator
-    gtk_box_pack_start(GTK_BOX(dtw->statusbar), 
+    gtk_box_pack_start(GTK_BOX(dtw->statusbar),
 #if GTK_CHECK_VERSION(3,0,0)
-		    gtk_separator_new(GTK_ORIENTATION_VERTICAL), 
+		    gtk_separator_new(GTK_ORIENTATION_VERTICAL),
 #else
-		    gtk_vseparator_new(), 
+		    gtk_vseparator_new(),
 #endif
 		    FALSE, FALSE, 0);
 
@@ -727,15 +731,15 @@ void SPDesktopWidget::init( SPDesktopWidget *dtw )
     gtk_grid_set_column_spacing(GTK_GRID(dtw->coord_status), 2);
     GtkWidget* sep = gtk_separator_new(GTK_ORIENTATION_VERTICAL);
     gtk_widget_set_name(sep, "CoordinateSeparator");
-    gtk_grid_attach(GTK_GRID(dtw->coord_status), 
+    gtk_grid_attach(GTK_GRID(dtw->coord_status),
 		    GTK_WIDGET(sep),
 		    0, 0, 1, 2);
 #else
     dtw->coord_status = gtk_table_new(5, 2, FALSE);
     gtk_table_set_row_spacings(GTK_TABLE(dtw->coord_status), 0);
     gtk_table_set_col_spacings(GTK_TABLE(dtw->coord_status), 2);
-    gtk_table_attach(GTK_TABLE(dtw->coord_status), 
-		    gtk_vseparator_new(), 
+    gtk_table_attach(GTK_TABLE(dtw->coord_status),
+		    gtk_vseparator_new(),
 		    0, 1, 0, 2,
                     GTK_FILL, GTK_FILL, 0, 0);
 #endif
@@ -815,7 +819,7 @@ void SPDesktopWidget::init( SPDesktopWidget *dtw )
         }
         overallTimer = 0;
     }
-    
+
     // Ensure that ruler ranges are updated correctly whenever the canvas table
     // is resized
     g_signal_connect (G_OBJECT (dtw->canvas_tbl),
@@ -834,7 +838,7 @@ static void sp_desktop_widget_dispose(GObject *object)
     if (dtw == NULL) {
         return;
     }
-    
+
     UXManager::getInstance()->delTrack(dtw);
 
     if (dtw->desktop) {
@@ -909,7 +913,7 @@ SPDesktopWidget::updateTitle(gchar const* uri)
         } else if (this->desktop->getMode() == Inkscape::RENDERMODE_NO_FILTERS) {
                 rendermodename = nofiltersname;
         }
-        
+
 
         if (this->desktop->number > 1) {
             if (rendermodename) {
@@ -1103,7 +1107,7 @@ void sp_update_guides_lock( GtkWidget */*button*/, gpointer data )
     SPDocument *doc = dtw->desktop->getDocument();
     SPNamedView *nv = dtw->desktop->getNamedView();
     Inkscape::XML::Node *repr = nv->getRepr();
-    
+
     if ( down != nv->lockguides ) {
         nv->lockguides = down;
         sp_namedview_guides_toggle_lock(doc, repr);
@@ -1575,7 +1579,13 @@ void SPDesktopWidget::layoutWidgets()
     if (!prefs->getBool(pref_root + "menu/state", true)) {
         gtk_widget_hide (dtw->menubar);
     } else {
+#ifdef  WITH_CARBON_INTEGRATION
         gtk_widget_show_all (dtw->menubar);
+        OSX_set_menubar(dtw);
+        gtk_widget_hide (dtw->menubar);
+#else
+        gtk_widget_show_all (dtw->menubar);
+#endif  /* WITH_CARBON_INTEGRATION */
     }
 
     if (!prefs->getBool(pref_root + "commands/state", true)) {
@@ -1891,7 +1901,7 @@ sp_desktop_widget_adjustment_value_changed (GtkAdjustment */*adj*/, SPDesktopWid
 
     dtw->update = 1;
 
-    dtw->canvas->scrollTo(gtk_adjustment_get_value(dtw->hadj), 
+    dtw->canvas->scrollTo(gtk_adjustment_get_value(dtw->hadj),
                           gtk_adjustment_get_value(dtw->vadj), FALSE);
     sp_desktop_widget_update_rulers (dtw);
 
@@ -1915,6 +1925,14 @@ bool SPDesktopWidget::onFocusInEvent(GdkEventFocus*)
             sp_image_refresh_if_outdated( image );
         }
     }
+
+#ifdef WITH_CARBON_INTEGRATION
+    if (sInkscapeOsxIntegration.dtw_infocus != this) {
+    OSX_set_menubar(this);
+    sInkscapeOsxIntegration.dtw_infocus = this;
+    }
+    gtk_widget_hide (menubar);
+#endif /* WITH_CARBON_INTEGRATION */
 
     INKSCAPE.activate_desktop (desktop);
 

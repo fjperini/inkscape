@@ -100,7 +100,7 @@ CXXTEST_TESTSUITES =
 
 # ################################################
 #
-#  E X T R A 
+#  E X T R A
 #
 # ################################################
 
@@ -108,7 +108,7 @@ if PLATFORM_WIN32
 win32_sources = winmain.cpp registrytool.cpp registrytool.h
 win32ldflags = -lcomdlg32 -lmscms
 mwindows = -mwindows
-endif 
+endif
 
 # Include all partial makefiles from subdirectories
 include Makefile_insert
@@ -146,6 +146,7 @@ include util/Makefile_insert
 include trace/Makefile_insert
 include 2geom/Makefile_insert
 include libdepixelize/Makefile_insert
+include osx_carbon_integration/Makefile_insert
 
 # Extra files not mentioned as sources to include in the source tarball
 EXTRA_DIST +=	\

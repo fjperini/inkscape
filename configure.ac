@@ -9,7 +9,7 @@ AC_PREREQ([2.64])
 # (whereas we always know what the previous version was called).
 #
 # Pre-releases are named "M.NNpreX" where X starts at 0 for the first alpha.
-AC_INIT([inkscape], [0.92.2],
+AC_INIT([inkscape], [0.92.3],
         [http://bugs.launchpad.net/inkscape/+filebug],
         [inkscape],
         [http://inkscape.org/])
@@ -36,6 +36,8 @@ AC_ARG_ENABLE([lsb], AS_HELP_STRING([--enable-lsb], [LSB-compatible build config
 
 AC_LANG(C++)
 AC_PROG_CXX
+AC_PROG_OBJCXX
+AC_PROG_OBJC
 AC_PROG_CC
 AM_PROG_AS
 # Initialize libtool
@@ -48,7 +50,7 @@ dnl If automake 1.11 shave the output to look nice
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 
 dnl *********************************************************
-dnl Configure a strict set of build rules to prevent usage of 
+dnl Configure a strict set of build rules to prevent usage of
 dnl deprecated features in external libraries and code that
 dnl triggers compiler warnings.
 dnl *********************************************************
@@ -83,8 +85,8 @@ if test "$GCC" = "yes"; then
   CPPFLAGS="-Wall $CPPFLAGS"
 
   # Permit only top-level Glib headers to be used.
-  # 
-  # TODO: This is already used in Glib >= 2.32 so this flag can be 
+  #
+  # TODO: This is already used in Glib >= 2.32 so this flag can be
   #       dropped when all targeted distros use higher Glib versions.
   CPPFLAGS="-DG_DISABLE_SINGLE_INCLUDES $CPPFLAGS"
 
@@ -126,7 +128,7 @@ if test "$GCC" = "yes"; then
     CFLAGS="$ink_svd_CFLAGS"
   fi
 
-  
+
   # This Automake variable is only used to suppress warnings in our internal
   # fork of GDL.  Once we get rid of our GDL fork, we can delete this test
   AC_MSG_CHECKING([compiler support for -Wno-unused-but-set-variable])
@@ -136,7 +138,7 @@ if test "$GCC" = "yes"; then
   AC_MSG_RESULT([$ink_opt_ok])
   CFLAGS="$ink_svd_CFLAGS"
   AM_CONDITIONAL(CC_WNO_UNUSED_BUT_SET_VARIABLE_SUPPORTED, test "$ink_opt_ok" = "yes")
-  
+
 
   ####
   # Linker flags...
@@ -198,7 +200,7 @@ AC_PATH_PROG(MSGFMT, msgfmt, msgfmt)
 AC_PATH_PROG(GMSGFMT, gmsgfmt, $MSGFMT)
 
 dnl ******************************
-dnl Check for OpenMP 
+dnl Check for OpenMP
 dnl ******************************
 AC_OPENMP
 if test "x$ac_cv_prog_cxx_openmp" != "xunsupported"; then
@@ -289,7 +291,7 @@ else
   platform_osx=no
 fi
 AC_MSG_RESULT([$platform_osx])
-	
+
 AC_MSG_CHECKING([for Solaris platform])
 case "$host" in
   *-solaris2.*)
@@ -543,6 +545,27 @@ AM_CONDITIONAL(WITH_LIBVISIO00, test "x$with_libvisio00" = "xyes")
 AM_CONDITIONAL(WITH_LIBVISIO, test "x$with_libvisio" = "xyes")
 
 dnl ********************************
+dnl Carbon Integration
+dnl ********************************
+AC_ARG_ENABLE(carbon,
+       AS_HELP_STRING([--enable-osx-carbon], [enable Carbon Integration]),
+       enable_carbon=$enableval,enable_carbon=no)
+with_carbon=no
+if test "x$enable_carbon" = "xyes"; then
+	PKG_CHECK_MODULES(GTKMACINTEGRATION, gtk-mac-integration-gtk2, gtk_mac_integration_gtk2_ok=yes, gtk_mac_integration_gtk2_ok=no)
+	if test "x$gtk_mac_integration_gtk2_ok" = "xyes"; then
+		AC_DEFINE(HAVE_GTKMACINTEGRATION, 1, [Use gtk-mac-integration])
+		AC_SUBST(GTKMACINTEGRATION_LIBS)
+		AC_SUBST(GTKMACINTEGRATION_CFLAGS)
+        	with_carbon=yes
+        	AC_DEFINE(WITH_CARBON_INTEGRATION,1,[Build with OSX Carbon Integration])
+		AM_CONDITIONAL(WITH_CARBON_INTEGRATION, test "$with_carbon" = "yes")
+		LIBS="$LIBS $GTKMACINTEGRATION_LIBS"
+		CPPFLAGS="$CPPFLAGS $GTKMACINTEGRATION_CFLAGS"
+	fi
+fi
+
+dnl ********************************
 dnl Check for libcdr for extension
 dnl ********************************
 
@@ -616,7 +639,7 @@ AC_SUBST(DBUS_CFLAGS)
 AM_CONDITIONAL(WITH_DBUS, test "x$with_dbus" = "xyes")
 
 dnl ******************************
-dnl Check for ImageMagick Magick++ 
+dnl Check for ImageMagick Magick++
 dnl ******************************
 
 PKG_CHECK_MODULES(IMAGEMAGICK, ImageMagick++, magick_ok=yes, magick_ok=no)
@@ -750,7 +773,7 @@ if test "x$enable_gtk3" = "xyes"; then
 	if test "x$with_gtkmm_3_0" = "xyes"; then
 		AC_MSG_RESULT([Using EXPERIMENTAL Gtkmm 3 build])
 		AC_DEFINE(WITH_GTKMM_3_0,1,[Build with Gtkmm 3.x])
-		
+
 		AC_MSG_RESULT([Using external GDL])
 		AC_DEFINE(WITH_EXT_GDL,1,[Build with external GDL])
 	else
@@ -781,8 +804,8 @@ if test "x$enable_gtk3" = "xyes"; then
 	fi
 
 	dnl The following test is only defined if Gtk+ 3 development libraries
-	dnl are installed on the system.  Therefore, it is guarded by an 
-	dnl m4_ifdef statement.  The ifdef can be probably be removed once we 
+	dnl are installed on the system.  Therefore, it is guarded by an
+	dnl m4_ifdef statement.  The ifdef can be probably be removed once we
 	dnl switch to Gtk+ 3 as a hard dependency
 
 	# Check whether we are using the X11 backend target for Gtk+ 3.
@@ -817,7 +840,7 @@ else
 	PKG_CHECK_MODULES(GTK,
 			  gtk+-2.0  >= 2.24
 			  $ink_spell_pkg)
-	
+
 	dnl Separate out dependencies that are known to introduce C++-specific
 	dnl compiler flags
 	PKG_CHECK_MODULES(GTKMM,
@@ -832,7 +855,7 @@ else
 		have_x11=no
 	fi
 	AC_MSG_RESULT($have_x11)
-	
+
 	# Enable build strict options that should work on most systems unless
 	# the build has been configured explicitly not to do so
 	if test "x$enable_strict_build" != "xno"; then
@@ -840,7 +863,7 @@ else
 		# been removed in Gtk+ 3 so these checks are important.
 		CPPFLAGS="-DGTKMM_DISABLE_DEPRECATED $CPPFLAGS"
 		CPPFLAGS="-DGTK_DISABLE_DEPRECATED $CPPFLAGS"
-		
+
 		# Allow only top-level GTK+ headers to be used.  This is mandatory
 		# for GTK+ >= 3.0 so there is no need to apply the flag in GTK+ 3
 		# builds.
@@ -852,8 +875,8 @@ else
 	if test "x$enable_strict_build" == "xhigh"; then
 		# FIXME: This causes build failure because our internal
 		# copy of GDL uses deprecated GDK symbols.
-		# 
-		# This specific issue isn't a problem for GTK+ 3 builds because 
+		#
+		# This specific issue isn't a problem for GTK+ 3 builds because
 		# we build against external GDL >= 3.3.4 rather than using
 		# the deprecated internal code
 		CPPFLAGS="-DGDK_DISABLE_DEPRECATED $CPPFLAGS"
@@ -865,6 +888,8 @@ INKSCAPE_CFLAGS="$GTK_CFLAGS $INKSCAPE_CFLAGS"
 INKSCAPE_CXX_DEPS_CFLAGS="$GTKMM_CFLAGS $INKSCAPE_CXX_DEPS_CFLAGS"
 INKSCAPE_LIBS="$GTK_LIBS $INKSCAPE_LIBS"
 INKSCAPE_CXX_DEPS_LIBS="$GTKMM_LIBS $INKSCAPE_CXX_DEPS_LIBS"
+
+CPPFLAGS="$CPPFLAGS $GTKMM_CFLAGS"
 
 dnl Configure x11 library if Gtk+ uses it as a backend.
 dnl Note that this is only here because we directly use X11 functionality.  We
@@ -881,14 +906,14 @@ AM_CONDITIONAL(WITH_EXT_GDL, test "x$with_gtkmm_3_0" = "xyes")
 # checking has been disabled
 if test "x$enable_strict_build" != "xno"; then
 	CPPFLAGS="-DGDKMM_DISABLE_DEPRECATED $CPPFLAGS"
-	
+
 	# Ensure that no deprecated glibmm symbols are introduced.
 	# lp:inkscape builds cleanly with this option at r10957
 	CPPFLAGS="-DGLIBMM_DISABLE_DEPRECATED $CPPFLAGS"
-	
+
 	dnl Pango 1.32.4 uses a deprecated Glib symbol:
 	dnl   https://bugzilla.gnome.org/show_bug.cgi?id=689843
-	dnl 
+	dnl
 	dnl TODO: Get rid of this check once we are sure that all targeted
 	dnl       platforms have got rid of this Pango version.  Apply the
 	dnl       G_DISABLE_DEPRECATED flag to all builds.
@@ -934,7 +959,7 @@ AC_CHECK_HEADER(popt.h,
 		AC_MSG_ERROR([libpopt is required]))
 
 dnl **************************
-dnl Check for aspell 
+dnl Check for aspell
 dnl ******************************
 AC_CHECK_LIB(aspell, new_aspell_config, [AC_CHECK_HEADER(aspell.h, aspell_ok=yes, aspell_ok=no)], aspell_ok=no, -lz -lm)
 if test "x$aspell_ok" = "xyes"; then
@@ -1197,7 +1222,7 @@ Configuration:
         Use openoffice files:     ${ij}
         Use relocation support:   ${enable_binreloc}
         Enable LittleCms:         ${enable_lcms}
-        Enable DBUS:              ${with_dbus} 
+        Enable DBUS:              ${with_dbus}
         Enable Poppler-Cairo:     ${enable_poppler_cairo}
 	Enable Potrace:           ${potrace_ok}
         ImageMagick Magick++:     ${magick_ok}
