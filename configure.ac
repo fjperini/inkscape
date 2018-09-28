@@ -9,7 +9,7 @@ AC_PREREQ([2.64])
 # (whereas we always know what the previous version was called).
 #
 # Pre-releases are named "M.NNpreX" where X starts at 0 for the first alpha.
-AC_INIT([inkscape], [0.92.2],
+AC_INIT([inkscape], [0.92.3],
         [http://bugs.launchpad.net/inkscape/+filebug],
         [inkscape],
         [http://inkscape.org/])
@@ -36,8 +36,11 @@ AC_ARG_ENABLE([lsb], AS_HELP_STRING([--enable-lsb], [LSB-compatible build config
 
 AC_LANG(C++)
 AC_PROG_CXX
+AC_PROG_OBJCXX
+AC_PROG_OBJC
 AC_PROG_CC
 AM_PROG_AS
+
 # Initialize libtool
 LT_PREREQ([2.2])
 LT_INIT
@@ -859,12 +862,50 @@ else
 		CPPFLAGS="-DGDK_DISABLE_DEPRECATED $CPPFLAGS"
 	fi
 fi
+
+dnl ********************************
+dnl Carbon Integration
+dnl ********************************
+AC_ARG_ENABLE(carbon,
+       AS_HELP_STRING([--enable-osx-carbon], [enable Carbon Integration]),
+       enable_carbon=$enableval,enable_carbon=no)
+with_carbon=no
+if test "x$enable_carbon" = "xyes"; then
+        if test "x$enable_gtk3" = "xyes"; then
+	  PKG_CHECK_MODULES(GTKMACINTEGRATION, gtk-mac-integration-gtk3, gtk_mac_integration_gtk3_ok=yes, gtk_mac_integration_gtk3_ok=no)
+	  if test "x$gtk_mac_integration_gtk3_ok" = "xyes"; then
+		AC_DEFINE(HAVE_GTKMACINTEGRATION, 1, [Use gtk-mac-integration])
+		AC_SUBST(GTKMACINTEGRATION_LIBS)
+		AC_SUBST(GTKMACINTEGRATION_CFLAGS)
+        	with_carbon=yes
+        	AC_DEFINE(WITH_CARBON_INTEGRATION,1,[Build with OSX Carbon Integration])
+		AM_CONDITIONAL(WITH_CARBON_INTEGRATION, test "$with_carbon" = "yes")
+		LIBS="$LIBS $GTKMACINTEGRATION_LIBS"
+		CPPFLAGS="$CPPFLAGS $GTKMACINTEGRATION_CFLAGS"
+	  fi
+	else
+          PKG_CHECK_MODULES(GTKMACINTEGRATION, gtk-mac-integration-gtk2, gtk_mac_integration_gtk2_ok=yes, gtk_mac_integration_gtk2_ok=no)
+	  if test "x$gtk_mac_integration_gtk2_ok" = "xyes"; then
+		AC_DEFINE(HAVE_GTKMACINTEGRATION, 1, [Use gtk-mac-integration])
+		AC_SUBST(GTKMACINTEGRATION_LIBS)
+		AC_SUBST(GTKMACINTEGRATION_CFLAGS)
+        	with_carbon=yes
+        	AC_DEFINE(WITH_CARBON_INTEGRATION,1,[Build with OSX Carbon Integration])
+		AM_CONDITIONAL(WITH_CARBON_INTEGRATION, test "$with_carbon" = "yes")
+		LIBS="$LIBS $GTKMACINTEGRATION_LIBS"
+		CPPFLAGS="$CPPFLAGS $GTKMACINTEGRATION_CFLAGS"
+	  fi
+	fi
+fi
+
 AM_CONDITIONAL(WITH_GTKMM_3_0, test "x$with_gtkmm_3_0" = "xyes")
 
 INKSCAPE_CFLAGS="$GTK_CFLAGS $INKSCAPE_CFLAGS"
 INKSCAPE_CXX_DEPS_CFLAGS="$GTKMM_CFLAGS $INKSCAPE_CXX_DEPS_CFLAGS"
 INKSCAPE_LIBS="$GTK_LIBS $INKSCAPE_LIBS"
 INKSCAPE_CXX_DEPS_LIBS="$GTKMM_LIBS $INKSCAPE_CXX_DEPS_LIBS"
+
+CPPFLAGS="$CPPFLAGS $GTKMM_CFLAGS"
 
 dnl Configure x11 library if Gtk+ uses it as a backend.
 dnl Note that this is only here because we directly use X11 functionality.  We
